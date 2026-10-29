@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EC2 Full-Stack Demo</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/script.js" defer></script>
+</head>
+<body>
+<header class="navbar">
+    <h2>Cloud Demo</h2>
+    <span>Spring Boot + AWS EC2</span>
+</header>
+
+<main class="container">
+    <section class="card">
+        <div class="icon">☁️</div>
+        <h1>Welcome to My Cloud Application</h1>
+        <p>
+            This frontend communicates with a Spring Boot
+            backend deployed on AWS EC2.
+        </p>
+
+        <form id="greetingForm">
+            <label for="username">Enter your name</label>
+            <input
+                    type="text"
+                    id="username"
+                    placeholder="e.g. Sreenath"
+                    maxlength="80"
+                    required
+            >
+            <button type="submit">Send to Backend</button>
+        </form>
+
+        <div id="result" class="result" aria-live="polite">
+            Your response will appear here.
+        </div>
+
+        <button id="healthButton" class="secondary" type="button">
+            Check Backend Health
+        </button>
+
+        <p id="healthStatus" aria-live="polite"></p>
+    </section>
+</main>
+
+<footer>
+    <p>Demo project for learning CI/CD with GitHub Actions</p>
+</footer>
+</body>
+</html>
