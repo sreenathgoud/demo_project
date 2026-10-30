@@ -1,17 +1,19 @@
 
-name: Full-Stack EC2 CI/CD
+name: Demo Project EC2 CI-CD
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-and-deploy:
+    name: Build and Deploy to EC2
+    runs-on: self-hosted
 
     steps:
       - name: Checkout source code
@@ -24,61 +26,35 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Build and test
+      - name: Build Spring Boot application
         run: |
           chmod +x mvnw
           ./mvnw -B clean verify
 
-      - name: Upload application JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: ec2-fullstack-demo-jar
-          path: target/ec2-fullstack-demo-*.jar
-          if-no-files-found: error
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download application JAR
-        uses: actions/download-artifact@v4
-        with:
-          name: ec2-fullstack-demo-jar
-          path: artifact
-
-      - name: Configure SSH
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+      - name: Verify JAR file
         run: |
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2_key
-          chmod 600 ~/.ssh/ec2_key
+          test -f target/demo_project-0.0.1-SNAPSHOT.jar
+          echo "JAR file generated successfully"
 
-      - name: Copy application to EC2
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
+      - name: Deploy JAR to EC2
         run: |
-          JAR_FILE=$(find artifact -maxdepth 1 -type f -name '*.jar' | head -n 1)
-          test -n "$JAR_FILE"
+          install -m 644 \
+            target/demo_project-0.0.1-SNAPSHOT.jar \
+            /home/ec2-user/demo_project/app.jar.new
 
-          # For a learning demo. In production, pin
-          # the verified EC2 SSH host key instead.
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+          mv /home/ec2-user/demo_project/app.jar.new \
+             /home/ec2-user/demo_project/app.jar
 
-          scp -i ~/.ssh/ec2_key "$JAR_FILE" \
-            "$EC2_USER@$EC2_HOST:/opt/ec2-demo/app.jar.new"
-
-      - name: Restart application
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
+      - name: Restart Spring Boot application
         run: |
-          ssh -i ~/.ssh/ec2_key "$EC2_USER@$EC2_HOST" '
-            set -e
-            mv /opt/ec2-demo/app.jar.new /opt/ec2-demo/app.jar
-            sudo systemctl restart ec2-demo
-            sleep 5
-            sudo systemctl is-active --quiet ec2-demo
-          '
+          sudo /usr/bin/systemctl restart demo-project
+          sleep 8
+          sudo /usr/bin/systemctl is-active --quiet demo-project
+
+      - name: Verify application
+        run: |
+          curl --fail --retry 10 --retry-delay 3 \
+            --retry-connrefused \
+            http://localhost:8080/
+          echo "Deployment successful!"
+
